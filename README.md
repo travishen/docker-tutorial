@@ -1,6 +1,19 @@
+# TOC
+* [Docker簡介](#docker簡介)
+* [安裝](#安裝)
+* [容器（Containers）](#容器containers)
+* [映像檔(image)](#映像檔image)
+* [持久化數據（Persisting Data）](##持久化數據persisting-data)
+* [Docker Compose](#docker-compose-官方文件-)
+* [Swarm Mode](#swarm-mode)
+	- [Stacks](#stacks)
+	- [Secrets](#secrets)
+	- [Healthchecks](#healthchecks)
+* [Docker Registry](#docker-registry)
+
 ![image](https://www.docker.com/sites/default/files/horizontal.png)
 
-# Docker簡介
+# Docker簡介 
 
 * Docker是2013年由DotCloud開發的開源專案，因為軟體的成功，公司之後也改名為Docker.Inc
 * 其實Docker的前身是象龜(@gordonTheTurtle)，之後改成鯨魚
@@ -784,7 +797,7 @@ $ docker image tag node:tiny ssivart/node:tini
 $ docker image push ssivart/node
 ```
 
-# 容器的生命週期
+# 持久化數據（Persisting Data）
 
 容器的設計理念有兩個特性:
 1. `immutable intrastucture`: 當你需要更改設定，皆是透過重新建立新的容器
@@ -792,8 +805,6 @@ $ docker image push ssivart/node
 
 延伸閱讀：
 [Pets vs Cattle Analogy](http://cloudscaling.com/blog/cloud-computing/the-history-of-pets-vs-cattle/)
-
-**持久化數據（persisting data）**
 
 容器的特性帶來可靠性(iability)和一致性(consistency)，不過相對地帶來一個問題，即如何維持持久化數據（如資料庫），針對這種關注點分離(Seperation of concerns, SOC)的架構設計問題，Docker提供了幾個方案：
 
