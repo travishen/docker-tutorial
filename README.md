@@ -1124,15 +1124,14 @@ Swarm會確保services持續運作
 `docker swarm init`可以新增一個swarm，其中完成這些動作[[ 文件 ]](https://docs.docker.com/engine/swarm/how-swarm-mode-works/pki/)：
 
 1. 初始公開金鑰基礎架構(public key infrastructure, PKI)
- - Docker先扮演第一個Manager node(root manager)
- - 產生一組root certificate authority(.ca)
- - 產生token: worker token + manager token
- - 其他node可以用這組token加入(join)swarm
- 
- 2. 初始Raft database
-  - 儲存憑證
-  - 在control plane讓Manager之間共享log，透過TLS
-  - 儲存config data[[ 文件 ]](https://docs.docker.com/engine/swarm/configs/)
+    - Docker先扮演第一個Manager node(root manager)
+    - 產生一組root certificate authority(.ca)
+    - 產生token: worker token + manager token
+    - 其他node可以用這組token加入(join)swarm 
+2. 初始Raft database
+    - 儲存憑證
+    - 在control plane讓Manager之間共享log，透過TLS
+    - 儲存config data[[ 文件 ]](https://docs.docker.com/engine/swarm/configs/)
   
 初始後可以看到第一個manager node
 ```
@@ -1460,3 +1459,22 @@ hello-world                  latest              4ab4c602aa5e        2 months ag
 $ docker image push 127.0.0.1:5000/hello-world
 ```
 push之後映像檔的實體檔案儲存在/var/lib/registry/
+
+## Registry in Swarm mode
+* 主要問題是解決nodes之間要訪問同一份映像檔
+* 如果只在其中一個manager node build image，其他node是沒辦法取得該image
+* 解法：
+    - 使用Docker hub、AWS、Quay來儲存管理映像檔
+    - 借助Routing Mesh，所有node都能藉由127.0.0.1:5000訪問
+    
+以下示範如何使用Routing Mesh建立registry
+```
+$ docker service create --name registry --publish 5000:5000 registry
+$ docker pull nginx
+$ docker tag hello-world 127.0.0.1:5000/nginx
+$ docker push 127.0.0.1:5000/nginx
+```
+將映像檔push到registry後，所有nodes都能從127.0.0.1:5000取得映像檔
+```
+$ docker service create -p 80:80 --replicas 5 -d 127.0.0.1/nginx
+```
