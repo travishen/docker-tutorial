@@ -6,9 +6,12 @@
 * [持久化數據（Persisting Data）](##持久化數據persisting-data)
 * [Docker Compose](#docker-compose-官方文件-)
 * [Swarm Mode](#swarm-mode)
-	- [Stacks](#stacks)
-	- [Secrets](#secrets)
-	- [Healthchecks](#healthchecks)
+    - [Nodes](#node)
+    - [Services and tasks](#service-and-task)
+    - [Overley Network](#overley-network)
+    - [Stacks](#stacks)
+    - [Secrets](#secrets)
+    - [Healthchecks](#healthchecks)
 * [Docker Registry](#docker-registry)
 
 ![image](https://www.docker.com/sites/default/files/horizontal.png)
@@ -1052,28 +1055,29 @@ nginx-custom    latest              4e0717a21563        6 minutes ago       109M
 ```
 執行完`down`，docker並不會主動移除客製化映像檔，針對要移除上面範例經過命名的映像檔，`down`指令加上`--rmi all`參數，如果是不提供映像檔名稱，docker會以`<bulid directory>_<container name>`的規則來命名映像檔，可以透過`--rmi local`移除
 
-### compose文件配置
+### composefile配置
 
-**這個部份待更新**
-針對部署端的compose還會有許多變動（swarm、stack、secrets...），往後再陸續更新進來
+**這個部份官方還在持續更新**
+往後針對部署端的compose還會有許多變動（swarm、stack、secrets...），之後會持續更新
 
 ```
-docker-compose.yml
+compose files 
+├── docker-compose.yml  # base
 ├── docker-compose.override.yml  # local
 ├── docker-compose.test.yml  # ci test
 └── docker-compose.prod.yml  # deploy
 ```
 docker-compose會自動辨識`.override.yml`的檔案，`.test.yml`及`.prod.yml`或其他自訂的compose file則需要手動透過指令`-f`來操作
 
-本地開發端
+本地開發端：`docker-compose.yml` + `docker-compose.override.yml`
 ```
 $ docker-compose up
 ```
-CI測試
+CI測試：`docker-compose.yml` + `docker-compose.test.yml`
 ```
 $ docker-compose -f docker-compose.yml -f docker-compose.test.yml up -d
 ```
-部署通常會用`config`輸出成一個完整的compose file
+部署通常會用`config`輸出成一個完整的compose file：`docker-compose.yml` + `docker-compose.prod.yml`
 ```
 $ docker-compose -f docker-compose.yml -f docker-compose.prod.yml config > production.yml
 $ docker-compose -f production.yml
@@ -1101,8 +1105,6 @@ Swarm中的Docker的實例（Docker host）
 兩個角色可以互換，node之間透過雙向TLS(mutual Transport Layer Security, 前身是SSL)協定溝通
 
 ![image](https://docs.docker.com/engine/swarm/images/swarm-diagram.png)
-
-
 
 ### Service and Task
 
@@ -1198,6 +1200,13 @@ service更新其中的tasks都會重建，task建立時docker會挑負載較小�
 $ docker service update --force web
 ```
 
+### CLI更新
+`service create`、`service update`在不同版本上的參數變更：
+1. 17.05前：必須都要透過`service ls`或`service ps`來檢查是否正常執行
+2. 17.05後：新增了`--detach`參數，預設為true
+3. 17.10後：`--detach`參數，預設改為false
+結論是17.12版本後要透過shell scripts或automation來建立service的話，記得設定`--detach=true`
+
 ### 使用GCP Compute Engine Instance Group來試作多節點Swarm
 
 ```
@@ -1229,8 +1238,7 @@ exs01fiaqanf0efveae7d610c     node-group-1-c1m7   Ready               Active    
 ```
 
 ### Overley Network
-跨Node間的網路拓樸
-
+跨Node間的網路拓樸，基於Routing Mesh
 ```
 node-group-1-5188:~$ docker network create --driver overlay mydrupal
 node-group-1-5188:~$ docker service create --name psql --network mydrupal -e POSTGRES_PASSWORD=example postgres
@@ -1252,11 +1260,14 @@ ID                  NAME                IMAGE               NODE                
 nute ago                       
 ```
 
-### Routing Mesh
-* ingress(incomming) network
-* stateless
-* load balancer in OSI layer 3(TCP), not in layer 4(DNS)
-* 使用linux既有的IPVS(IP Virtual Server)實現load balancing
+#### [Routing Mesh](https://docs.docker.com/engine/swarm/ingress/)
+* 為service底下的task提供路由(routes ingress packets)
+    - container-to-container use Virtual IP
+    - external traffic incomming to publish ports(all nodes listen)
+* 為services提供負載平衡
+    - stateless load balancer，如果需要指向特定container的話，須另外設定（如cookie、session）
+    - 使用linux既有的IPVS(IP Virtual Server)實現load balancing
+    - load balancer表現於TCP層的(OSI第3層)，針對一個swarm一個對外port的web架構，還會需要Nginx、HAProxy來做DNS層（第4層）的load balancer
 
 1. 無論訪問網路中的哪個節點，即使該節點上沒有運行該service的副本，最終都能訪問到該service
 舉例來說，如果後端資料庫有3個副本，當前端web server要取資料時，並非直接訪問某個資料庫副本的ip，而是透過swarm為所有service搭建的Virtual IP(VIP)
