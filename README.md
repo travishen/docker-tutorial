@@ -948,7 +948,7 @@ Docker compose包含兩個部份：
 1. `docker-compose.yml`: YAML格式的文件來設定容器、網路、Volumes的hierarchy
 
 	* 有區分版本，如1, 2, 2.1
-	* 用`-f`來命名，預設是`docker-compose.yml`
+	* 用`-f`來讀取特定檔案，預設讀取的檔名是`docker-compose.yml`
 	
 2. `docker-compose`: 命令列(CLI)工具用來測試compose file
 
@@ -988,8 +988,8 @@ services:
 * 僅用於開發測試端，非正式部屬使用
 
 常用指令
-* `docker-compose up`: 設定volumes/networks，執行所有容器
-* `docker-compose down`: 停止並移除所有容器，移除所有volumes/networks
+* `docker-compose up`: 設定volumes/networks，執行所有容器，使用`-d`讓程序於背景執行
+* `docker-compose down`: 停止並移除所有容器，常用`-v`來移除所有volumes/networks
 
 ### 練習: drupal + postgres架站
 ```yaml
